@@ -3,92 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Paper House | Global Chat</title>
+    <title>Paper House | United Earth</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg: #0e1621;
-            --header: #17212b;
-            --text: #ffffff;
-            --msg-me: #2b5278;
-            --msg-others: #182533;
-            --accent: #4ea4f5;
-            --hint: #708499;
+            --bg-color: #0b0e11;
+            --card-bg: #15191d;
+            --primary: #4ea4f5;
+            --text-main: #e9edef;
+            --text-dim: #8696a0;
+            --my-msg: #005c4b;
+            --other-msg: #202c33;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh;
+            margin: 0; padding: 0; background: var(--bg-color);
+            color: var(--text-main); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
 
+        /* Top Header */
         header {
-            background: var(--header);
-            padding: 10px 15px;
+            background: var(--card-bg); padding: 15px;
             display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #000;
+            border-bottom: 1px solid #222; z-index: 100;
         }
 
-        #chat-screen {
-            flex: 1; overflow-y: auto; padding: 15px;
-            display: flex; flex-direction: column; gap: 8px;
-            background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
+        .hub-title { font-weight: bold; color: var(--primary); letter-spacing: 1px; }
+        #stats { font-size: 10px; color: var(--text-dim); }
+
+        /* Chat Area */
+        #world-map {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 12px;
+            background: radial-gradient(circle at center, #1a1d21 0%, #0b0e11 100%);
         }
 
-        .message {
-            max-width: 80%; padding: 8px 12px; border-radius: 12px;
-            font-size: 14px; line-height: 1.4; position: relative;
-            animation: fadeIn 0.3s ease;
+        .msg-container { display: flex; flex-direction: column; max-width: 80%; }
+        .msg-container.me { align-self: flex-end; }
+        .msg-container.others { align-self: flex-start; }
+
+        .user-tag {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11px; margin-bottom: 4px; color: var(--text-dim);
         }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .flag { font-size: 14px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
+        .status-online { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
 
-        .me { align-self: flex-end; background: var(--msg-me); border-bottom-right-radius: 2px; }
-        .others { align-self: flex-start; background: var(--msg-others); border-bottom-left-radius: 2px; }
+        .bubble {
+            padding: 10px 14px; border-radius: 15px; font-size: 14.5px;
+            line-height: 1.5; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
 
-        .user-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-bottom: 4px; font-weight: bold; }
-        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #555; }
-        .online { background: #4ecb71; box-shadow: 0 0 5px #4ecb71; }
+        .me .bubble { background: var(--my-msg); border-top-right-radius: 2px; }
+        .others .bubble { background: var(--other-msg); border-top-left-radius: 2px; }
 
-        .time { font-size: 10px; opacity: 0.5; float: right; margin-top: 5px; margin-left: 10px; }
+        .meta-info {
+            display: flex; justify-content: flex-end; gap: 5px;            font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px;
+        }
 
+        /* Input Area */
         .input-bar {
-            background: var(--header); padding: 10px;
+            background: var(--card-bg); padding: 12px;
             display: flex; gap: 10px; align-items: center;
         }
 
-        #msg-input {
-            flex: 1; background: var(--bg); border: 1px solid #222;            color: white; padding: 10px 15px; border-radius: 20px; outline: none;
+        #message-input {
+            flex: 1; background: #2a2f32; border: none;
+            color: white; padding: 12px 18px; border-radius: 25px; outline: none;
         }
 
         #send-btn {
-            background: none; border: none; color: var(--accent);
-            font-size: 24px; cursor: pointer;
+            background: var(--primary); border: none; width: 45px; height: 45px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
 
         /* Scrollbar */
-        #chat-screen::-webkit-scrollbar { width: 4px; }
-        #chat-screen::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        #world-map::-webkit-scrollbar { width: 4px; }
+        #world-map::-webkit-scrollbar-thumb { background: #333; }
     </style>
 </head>
 <body>
 
     <header>
-        <span>Paper House Global</span>
-        <span id="online-count" style="font-size: 10px; color: var(--accent);">Connecting...</span>
+        <div class="hub-title">UNITED EARTH HUB</div>
+        <div id="stats">Global Sync Active</div>
     </header>
 
-    <div id="chat-screen"></div>
+    <div id="world-map"></div>
 
     <div class="input-bar">
-        <input type="text" id="msg-input" placeholder="Broadcast to the world..." maxlength="500">
-        <button id="send-btn">➤</button>
+        <input type="text" id="message-input" placeholder="Type a global message..." maxlength="1000">
+        <button id="send-btn">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+        </button>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, serverTimestamp, onValue, onDisconnect, set } 
+    import { getDatabase, ref, push, onChildAdded, serverTimestamp, onValue, onDisconnect, set, query, limitToLast } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
@@ -100,41 +115,46 @@
         appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
     };
 
-    // Init
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const userId = String(tg.initDataUnsafe?.user?.id || "guest_" + Math.floor(Math.random() * 1000));
-    const userName = tg.initDataUnsafe?.user?.first_name || "Anonymous";
+    const userId = String(tg.initDataUnsafe?.user?.id || "anonymous");
+    const userName = tg.initDataUnsafe?.user?.first_name || "Guest";
+    let userCountry = "🌍";
+    // --- 1. GET GLOBAL LOCATION ---
+    async function fetchLocation() {
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            const data = await res.json();
+            userCountry = data.country_emoji || "🌍";
+        } catch (e) { console.log("Location blocked"); }
+    }
+    fetchLocation();
 
-    // --- GLOBAL SYNC ENGINE ---
-    const worldChatRef = ref(db, 'world_chat');
-    const presenceRef = ref(db, `users_online/${userId}`);
-    const connectedRef = ref(db, '.info/connected');
-
-    // 1. Handle Online/Offline Status
-    onValue(connectedRef, (snap) => {
+    // --- 2. PRESENCE SYSTEM ---
+    const myStatusRef = ref(db, `presence/${userId}`);
+    onValue(ref(db, '.info/connected'), (snap) => {
         if (snap.val() === true) {
-            set(presenceRef, { name: userName, status: "online", lastSeen: serverTimestamp() });            onDisconnect(presenceRef).set({ name: userName, status: "offline", lastSeen: serverTimestamp() });
+            set(myStatusRef, { name: userName, status: 'online', country: userCountry, last: serverTimestamp() });
+            onDisconnect(myStatusRef).set({ name: userName, status: 'offline', country: userCountry, last: serverTimestamp() });
         }
     });
 
-    // 2. Message Logic
-    const chatScreen = document.getElementById('chat-screen');
-    const msgInput = document.getElementById('msg-input');
+    // --- 3. CHAT ENGINE ---
+    const chatScreen = document.getElementById('world-map');
+    const msgInput = document.getElementById('message-input');
     const sendBtn = document.getElementById('send-btn');
 
     function broadcast() {
         const text = msgInput.value.trim();
         if (!text) return;
 
-        push(worldChatRef, {
-            userId,
-            name: userName,
-            text,
-            timestamp: serverTimestamp()
+        // Optimistic UI: The database is in Asia, so we don't wait. 
+        // We push to Firebase and let it sync globally.
+        push(ref(db, 'global_hub'), {
+            userId, name: userName, text, country: userCountry, timestamp: serverTimestamp()
         });
 
         msgInput.value = "";
@@ -143,67 +163,66 @@
     sendBtn.onclick = broadcast;
     msgInput.onkeypress = (e) => { if(e.key === 'Enter') broadcast(); };
 
-    // 3. THE MASTER SYNC (This is what you were missing)
-    // This listens to EVERY message ever added to the world_chat node
-    onChildAdded(worldChatRef, (snapshot) => {
+    // --- 4. WORLD SYNC (The "Asia Fix") ---
+    const hubQuery = query(ref(db, 'global_hub'), limitToLast(50));
+    onChildAdded(hubQuery, (snapshot) => {
         const data = snapshot.val();
         renderMessage(data);
     });
 
     function renderMessage(data) {
         const isMe = data.userId === userId;
-        const div = document.createElement('div');
-        div.className = `message ${isMe ? 'me' : 'others'}`;
+        const container = document.createElement('div');
+        container.className = `msg-container ${isMe ? 'me' : 'others'}`;
         
         const date = data.timestamp ? new Date(data.timestamp) : new Date();
         const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        div.innerHTML = `
-            <div class="user-meta">
-                <span class="status-dot dot-${data.userId}"></span>
-                ${data.name} 
-                <span class="last-seen-${data.userId}" style="font-size:8px; opacity:0.6"></span>
+        container.innerHTML = `
+            <div class="user-tag">
+                <span class="status-dot s-dot-${data.userId}"></span>
+                <span class="flag">${data.country || '🌍'}</span>
+                <b>${data.name}</b>
+                <span class="seen-${data.userId}" style="font-size:8px"></span>
             </div>
-            <div class="text">${data.text}</div>
-            <div class="time">${timeStr}</div>
+            <div class="bubble">
+                ${data.text}
+                <div class="meta-info">${timeStr}</div>
+            </div>
         `;
 
-        chatScreen.appendChild(div);
+        chatScreen.appendChild(container);
         chatScreen.scrollTop = chatScreen.scrollHeight;
 
-        // Sync Individual Status
-        onValue(ref(db, `users_online/${data.userId}`), (snap) => {
-            const statusData = snap.val();
-            const dot = div.querySelector(`.status-dot`);
-            const seenTxt = div.querySelector(`.last-seen-${data.userId}`);
-            
-            if (statusData) {
-                if (statusData.status === "online") {
-                    dot.classList.add('online');
-                    seenTxt.innerText = "online";
+        // Live status sync for this specific user
+        onValue(ref(db, `presence/${data.userId}`), (snap) => {
+            const status = snap.val();
+            const dot = container.querySelector(`.s-dot-${data.userId}`);
+            const seen = container.querySelector(`.seen-${data.userId}`);
+            if (status) {
+                if (status.status === 'online') {
+                    dot.className = "status-dot status-online";
+                    seen.innerText = "";
                 } else {
-                    dot.classList.remove('online');
-                    seenTxt.innerText = formatTimeAgo(statusData.lastSeen);
+                    dot.className = "status-dot";
+                    seen.innerText = formatTime(status.last);
                 }
             }
         });
     }
 
-    function formatTimeAgo(ts) {
-        if (!ts) return "";
-        const diff = Math.floor((Date.now() - ts) / 1000);
-        if (diff < 60) return "just now";
-        if (diff < 3600) return Math.floor(diff/60) + "m ago";
-        if (diff < 86400) return Math.floor(diff/3600) + "h ago";
-        return Math.floor(diff/86400) + "d ago";
+    function formatTime(ts) {
+        if(!ts) return "";
+        const diff = (Date.now() - ts)/1000;
+        if(diff < 60) return "just now";
+        if(diff < 3600) return Math.floor(diff/60)+"m ago";
+        return Math.floor(diff/3600)+"h ago";
     }
 
-    // Global Online Counter
-    onValue(ref(db, 'users_online'), (snap) => {
-        const total = snap.size;
-        document.getElementById('online-count').innerText = `${total} users connected`;
+    // Global Statistics
+    onValue(ref(db, 'presence'), (snap) => {
+        document.getElementById('stats').innerText = `${snap.size} Earthlings Online`;
     });
-
 </script>
 </body>
 </html>
