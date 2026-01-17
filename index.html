@@ -3,93 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Paper House Global</title>
+    <title>Paper House | Global Chat</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --tg-theme-bg-color: #ffffff;
-            --tg-theme-secondary-bg-color: #f0f2f5;
-            --tg-theme-text-color: #000000;
-            --tg-theme-button-color: #0088cc;
-            --online-color: #4CAF50;
-            --offline-color: #999;
+            --bg: #0e1621;
+            --header: #17212b;
+            --text: #ffffff;
+            --msg-me: #2b5278;
+            --msg-others: #182533;
+            --accent: #4ea4f5;
+            --hint: #708499;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--tg-theme-secondary-bg-color);
+            background-color: var(--bg);
+            color: var(--text);
             margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh;
         }
 
         header {
-            background: var(--tg-theme-bg-color);
-            padding: 12px; text-align: center; font-weight: bold;
-            border-bottom: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            z-index: 10;
+            background: var(--header);
+            padding: 10px 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #000;
         }
 
-        #chat-box {
+        #chat-screen {
             flex: 1; overflow-y: auto; padding: 15px;
-            display: flex; flex-direction: column; gap: 15px;
+            display: flex; flex-direction: column; gap: 8px;
+            background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
         }
 
-        .msg-wrapper { display: flex; flex-direction: column; max-width: 85%; }
-        .msg-wrapper.me { align-self: flex-end; }
-        .msg-wrapper.others { align-self: flex-start; }
-
-        .user-info {
-            font-size: 11px; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
-            color: #555;
+        .message {
+            max-width: 80%; padding: 8px 12px; border-radius: 12px;
+            font-size: 14px; line-height: 1.4; position: relative;
+            animation: fadeIn 0.3s ease;
         }
 
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .dot-online { background: var(--online-color); box-shadow: 0 0 4px var(--online-color); }
-        .dot-offline { background: var(--offline-color); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .bubble {
-            padding: 10px 14px; border-radius: 18px; font-size: 14px;
-            line-height: 1.4; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        .me { align-self: flex-end; background: var(--msg-me); border-bottom-right-radius: 2px; }
+        .others { align-self: flex-start; background: var(--msg-others); border-bottom-left-radius: 2px; }
+
+        .user-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-bottom: 4px; font-weight: bold; }
+        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #555; }
+        .online { background: #4ecb71; box-shadow: 0 0 5px #4ecb71; }
+
+        .time { font-size: 10px; opacity: 0.5; float: right; margin-top: 5px; margin-left: 10px; }
+
+        .input-bar {
+            background: var(--header); padding: 10px;
+            display: flex; gap: 10px; align-items: center;
         }
 
-        .me .bubble { background: #dcf8c6; border-bottom-right-radius: 2px; color: #000; }
-        .others .bubble { background: var(--tg-theme-bg-color); border-bottom-left-radius: 2px; color: var(--tg-theme-text-color); }
-
-        .time { font-size: 10px; opacity: 0.5; margin-top: 4px; text-align: right; display: block; }
-
-        .input-area {
-            background: var(--tg-theme-bg-color); padding: 10px;            display: flex; gap: 10px; border-top: 1px solid #ddd; align-items: center;
-        }
-
-        #message-input {
-            flex: 1; border: 1px solid #ddd; border-radius: 25px;
-            padding: 12px 18px; outline: none; font-size: 14px;
-            background: var(--tg-theme-secondary-bg-color);
+        #msg-input {
+            flex: 1; background: var(--bg); border: 1px solid #222;            color: white; padding: 10px 15px; border-radius: 20px; outline: none;
         }
 
         #send-btn {
-            background: var(--tg-theme-button-color); border: none;
-            color: white; width: 45px; height: 45px; border-radius: 50%;
-            cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+            background: none; border: none; color: var(--accent);
+            font-size: 24px; cursor: pointer;
         }
 
-        /* Hide Scrollbar */
-        #chat-box::-webkit-scrollbar { width: 0; }
+        /* Scrollbar */
+        #chat-screen::-webkit-scrollbar { width: 4px; }
+        #chat-screen::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <header>PAPER HOUSE GLOBAL CHAT</header>
+    <header>
+        <span>Paper House Global</span>
+        <span id="online-count" style="font-size: 10px; color: var(--accent);">Connecting...</span>
+    </header>
 
-    <div id="chat-box"></div>
+    <div id="chat-screen"></div>
 
-    <div class="input-area">
-        <input type="text" id="message-input" placeholder="Message..." autocomplete="off">
+    <div class="input-bar">
+        <input type="text" id="msg-input" placeholder="Broadcast to the world..." maxlength="500">
         <button id="send-btn">➤</button>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, serverTimestamp, onValue, onDisconnect, set, query, limitToLast } 
+    import { getDatabase, ref, push, onChildAdded, serverTimestamp, onValue, onDisconnect, set } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
@@ -101,109 +100,110 @@
         appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
     };
 
+    // Init
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const userId = String(tg.initDataUnsafe?.user?.id || "guest_" + Math.random().toString(36).substr(2, 5));
+    const userId = String(tg.initDataUnsafe?.user?.id || "guest_" + Math.floor(Math.random() * 1000));
     const userName = tg.initDataUnsafe?.user?.first_name || "Anonymous";
 
-    // --- 1. PRESENCE & LAST SEEN LOGIC ---
-    const myStatusRef = ref(db, `/status/${userId}`);
+    // --- GLOBAL SYNC ENGINE ---
+    const worldChatRef = ref(db, 'world_chat');
+    const presenceRef = ref(db, `users_online/${userId}`);
     const connectedRef = ref(db, '.info/connected');
 
+    // 1. Handle Online/Offline Status
     onValue(connectedRef, (snap) => {
         if (snap.val() === true) {
-            // Set online
-            set(myStatusRef, { state: 'online', name: userName, lastChanged: serverTimestamp() });            // On disconnect, store the timestamp of when they left
-            onDisconnect(myStatusRef).set({ state: 'offline', name: userName, lastChanged: serverTimestamp() });
+            set(presenceRef, { name: userName, status: "online", lastSeen: serverTimestamp() });            onDisconnect(presenceRef).set({ name: userName, status: "offline", lastSeen: serverTimestamp() });
         }
     });
 
-    // --- 2. TIME AGO CALCULATOR ---
-    function getTimeAgo(timestamp) {
-        if (!timestamp) return "...";
-        const now = new Date();
-        const past = new Date(timestamp);
-        const diffInSeconds = Math.floor((now - past) / 1000);
-
-        if (diffInSeconds < 60) return "just now";
-        if (diffInSeconds < 3600) return Math.floor(diffInSeconds / 60) + "m ago";
-        if (diffInSeconds < 86400) return Math.floor(diffInSeconds / 3600) + "h ago";
-        return Math.floor(diffInSeconds / 86400) + "d ago";
-    }
-
-    // --- 3. CHAT ENGINE ---
-    const chatBox = document.getElementById('chat-box');
-    const msgInput = document.getElementById('message-input');
+    // 2. Message Logic
+    const chatScreen = document.getElementById('chat-screen');
+    const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
 
-    function sendMessage() {
+    function broadcast() {
         const text = msgInput.value.trim();
         if (!text) return;
-        push(ref(db, 'global_messages'), {
-            userId, name: userName, text, timestamp: serverTimestamp()
+
+        push(worldChatRef, {
+            userId,
+            name: userName,
+            text,
+            timestamp: serverTimestamp()
         });
+
         msgInput.value = "";
     }
 
-    sendBtn.onclick = sendMessage;
-    msgInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+    sendBtn.onclick = broadcast;
+    msgInput.onkeypress = (e) => { if(e.key === 'Enter') broadcast(); };
 
-    // Load messages (Limit to 200 for performance, but they stay in DB forever)
-    const messagesQuery = query(ref(db, 'global_messages'), limitToLast(200));
-
-    onChildAdded(messagesQuery, (snapshot) => {
+    // 3. THE MASTER SYNC (This is what you were missing)
+    // This listens to EVERY message ever added to the world_chat node
+    onChildAdded(worldChatRef, (snapshot) => {
         const data = snapshot.val();
         renderMessage(data);
     });
 
     function renderMessage(data) {
         const isMe = data.userId === userId;
-        const msgWrapper = document.createElement('div');
-        msgWrapper.className = `msg-wrapper ${isMe ? 'me' : 'others'}`;
+        const div = document.createElement('div');
+        div.className = `message ${isMe ? 'me' : 'others'}`;
         
         const date = data.timestamp ? new Date(data.timestamp) : new Date();
         const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        msgWrapper.innerHTML = `
-            <div class="user-info">
-                <span class="status-dot dot-${data.userId} dot-offline"></span>
-                <b>${data.name}</b>
-                <span class="last-seen-${data.userId}" style="font-size:9px; opacity:0.7"></span>
+        div.innerHTML = `
+            <div class="user-meta">
+                <span class="status-dot dot-${data.userId}"></span>
+                ${data.name} 
+                <span class="last-seen-${data.userId}" style="font-size:8px; opacity:0.6"></span>
             </div>
-            <div class="bubble">
-                ${data.text}
-                <span class="time">${timeStr}</span>
-            </div>
+            <div class="text">${data.text}</div>
+            <div class="time">${timeStr}</div>
         `;
 
-        chatBox.appendChild(msgWrapper);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        chatScreen.appendChild(div);
+        chatScreen.scrollTop = chatScreen.scrollHeight;
 
-        // Watch user status live
-        onValue(ref(db, `/status/${data.userId}`), (snap) => {
-            const status = snap.val();
-            const dot = msgWrapper.querySelector(`.dot-${data.userId}`);
-            const seenText = msgWrapper.querySelector(`.last-seen-${data.userId}`);
+        // Sync Individual Status
+        onValue(ref(db, `users_online/${data.userId}`), (snap) => {
+            const statusData = snap.val();
+            const dot = div.querySelector(`.status-dot`);
+            const seenTxt = div.querySelector(`.last-seen-${data.userId}`);
             
-            if (status) {
-                if (status.state === 'online') {
-                    dot.className = `status-dot dot-online`;
-                    seenText.innerText = "online";
+            if (statusData) {
+                if (statusData.status === "online") {
+                    dot.classList.add('online');
+                    seenTxt.innerText = "online";
                 } else {
-                    dot.className = `status-dot dot-offline`;
-                    seenText.innerText = getTimeAgo(status.lastChanged);
+                    dot.classList.remove('online');
+                    seenTxt.innerText = formatTimeAgo(statusData.lastSeen);
                 }
             }
         });
     }
 
-    // Refresh "Last Seen" texts every 30 seconds
-    setInterval(() => {
-        // Logic to refresh all offline status texts
-    }, 30000);
+    function formatTimeAgo(ts) {
+        if (!ts) return "";
+        const diff = Math.floor((Date.now() - ts) / 1000);
+        if (diff < 60) return "just now";
+        if (diff < 3600) return Math.floor(diff/60) + "m ago";
+        if (diff < 86400) return Math.floor(diff/3600) + "h ago";
+        return Math.floor(diff/86400) + "d ago";
+    }
+
+    // Global Online Counter
+    onValue(ref(db, 'users_online'), (snap) => {
+        const total = snap.size;
+        document.getElementById('online-count').innerText = `${total} users connected`;
+    });
+
 </script>
 </body>
 </html>
