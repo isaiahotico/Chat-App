@@ -8,77 +8,202 @@
     <style>
         :root {
             --tg-theme-bg-color: #ffffff;
-            --tg-theme-secondary-bg-color: #efeff3;
+            --tg-theme-secondary-bg-color: #f0f2f5;
             --tg-theme-text-color: #000000;
-            --tg-theme-button-color: #248bed;
+            --tg-theme-button-color: #0088cc;
+            --online-color: #4CAF50;
+            --offline-color: #999;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--tg-theme-secondary-bg-color);
-            margin: 0; display: flex; flex-direction: column; height: 100vh;
+            margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh;
         }
 
         header {
             background: var(--tg-theme-bg-color);
-            padding: 10px; text-align: center; font-weight: bold;
-            border-bottom: 1px solid #ddd; font-size: 14px;
+            padding: 12px; text-align: center; font-weight: bold;
+            border-bottom: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 10;
         }
 
         #chat-box {
             flex: 1; overflow-y: auto; padding: 15px;
-            display: flex; flex-direction: column; gap: 12px;
+            display: flex; flex-direction: column; gap: 15px;
         }
 
-        .msg {
-            max-width: 80%; padding: 8px 12px; border-radius: 12px;
-            font-size: 14px; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        .msg-wrapper { display: flex; flex-direction: column; max-width: 85%; }
+        .msg-wrapper.me { align-self: flex-end; }
+        .msg-wrapper.others { align-self: flex-start; }
+
+        .user-info {
+            font-size: 11px; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
+            color: #555;
         }
 
-        .others { align-self: flex-start; background: var(--tg-theme-bg-color); border-bottom-left-radius: 2px; }
-        .me { align-self: flex-end; background: #e2f7cb; border-bottom-right-radius: 2px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .dot-online { background: var(--online-color); box-shadow: 0 0 4px var(--online-color); }
+        .dot-offline { background: var(--offline-color); }
 
-        /* Online/Offline Status Circle */
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 4px;
-            background-color: #bbb; /* Default Offline */
-        }
-        .status-dot.online {
-            background-color: #4CAF50; /* Online Green */
-            box-shadow: 0 0 5px #4CAF50;
+        .bubble {
+            padding: 10px 14px; border-radius: 18px; font-size: 14px;
+            line-height: 1.4; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
-        .user-name { font-weight: bold; font-size: 11px; color: #248bed; margin-bottom: 3px; display: flex; align-items: center; }
-        .text { display: block; margin-bottom: 4px; word-wrap: break-word; }
-        .time { display: block; font-size: 10px; text-align: right; opacity: 0.5; }
+        .me .bubble { background: #dcf8c6; border-bottom-right-radius: 2px; color: #000; }
+        .others .bubble { background: var(--tg-theme-bg-color); border-bottom-left-radius: 2px; color: var(--tg-theme-text-color); }
 
-        .input-container {
-            background: var(--tg-theme-bg-color); padding: 10px;
-            display: flex; gap: 10px; border-top: 1px solid #ddd;
+        .time { font-size: 10px; opacity: 0.5; margin-top: 4px; text-align: right; display: block; }
+
+        .input-area {
+            background: var(--tg-theme-bg-color); padding: 10px;            display: flex; gap: 10px; border-top: 1px solid #ddd; align-items: center;
         }
 
         #message-input {
-            flex: 1; border: 1px solid #ccc; border-radius: 20px;
-            padding: 10px 15px; outline: none;
+            flex: 1; border: 1px solid #ddd; border-radius: 25px;
+            padding: 12px 18px; outline: none; font-size: 14px;
+            background: var(--tg-theme-secondary-bg-color);
         }
 
         #send-btn {
-            background: var(--tg-theme-button-color); color: white;
-            border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer;
+            background: var(--tg-theme-button-color); border: none;
+            color: white; width: 45px; height: 45px; border-radius: 50%;
+            cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
         }
+
+        /* Hide Scrollbar */
+        #chat-box::-webkit-scrollbar { width: 0; }
     </style>
 </head>
 <body>
-    <header>PAPER HOUSE GLOBAL</header>
+
+    <header>PAPER HOUSE GLOBAL CHAT</header>
+
     <div id="chat-box"></div>
-    <div class="input-container">
+
+    <div class="input-area">
         <input type="text" id="message-input" placeholder="Message..." autocomplete="off">
-        <button id="send-btn">➔</button>
+        <button id="send-btn">➤</button>
     </div>
-    <script type="module" src="app.js"></script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded, serverTimestamp, onValue, onDisconnect, set, query, limitToLast } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
+        authDomain: "paper-house-inc.firebaseapp.com",
+        projectId: "paper-house-inc",
+        storageBucket: "paper-house-inc.firebasestorage.app",
+        messagingSenderId: "658389836376",
+        appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const userId = String(tg.initDataUnsafe?.user?.id || "guest_" + Math.random().toString(36).substr(2, 5));
+    const userName = tg.initDataUnsafe?.user?.first_name || "Anonymous";
+
+    // --- 1. PRESENCE & LAST SEEN LOGIC ---
+    const myStatusRef = ref(db, `/status/${userId}`);
+    const connectedRef = ref(db, '.info/connected');
+
+    onValue(connectedRef, (snap) => {
+        if (snap.val() === true) {
+            // Set online
+            set(myStatusRef, { state: 'online', name: userName, lastChanged: serverTimestamp() });            // On disconnect, store the timestamp of when they left
+            onDisconnect(myStatusRef).set({ state: 'offline', name: userName, lastChanged: serverTimestamp() });
+        }
+    });
+
+    // --- 2. TIME AGO CALCULATOR ---
+    function getTimeAgo(timestamp) {
+        if (!timestamp) return "...";
+        const now = new Date();
+        const past = new Date(timestamp);
+        const diffInSeconds = Math.floor((now - past) / 1000);
+
+        if (diffInSeconds < 60) return "just now";
+        if (diffInSeconds < 3600) return Math.floor(diffInSeconds / 60) + "m ago";
+        if (diffInSeconds < 86400) return Math.floor(diffInSeconds / 3600) + "h ago";
+        return Math.floor(diffInSeconds / 86400) + "d ago";
+    }
+
+    // --- 3. CHAT ENGINE ---
+    const chatBox = document.getElementById('chat-box');
+    const msgInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    function sendMessage() {
+        const text = msgInput.value.trim();
+        if (!text) return;
+        push(ref(db, 'global_messages'), {
+            userId, name: userName, text, timestamp: serverTimestamp()
+        });
+        msgInput.value = "";
+    }
+
+    sendBtn.onclick = sendMessage;
+    msgInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+    // Load messages (Limit to 200 for performance, but they stay in DB forever)
+    const messagesQuery = query(ref(db, 'global_messages'), limitToLast(200));
+
+    onChildAdded(messagesQuery, (snapshot) => {
+        const data = snapshot.val();
+        renderMessage(data);
+    });
+
+    function renderMessage(data) {
+        const isMe = data.userId === userId;
+        const msgWrapper = document.createElement('div');
+        msgWrapper.className = `msg-wrapper ${isMe ? 'me' : 'others'}`;
+        
+        const date = data.timestamp ? new Date(data.timestamp) : new Date();
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        msgWrapper.innerHTML = `
+            <div class="user-info">
+                <span class="status-dot dot-${data.userId} dot-offline"></span>
+                <b>${data.name}</b>
+                <span class="last-seen-${data.userId}" style="font-size:9px; opacity:0.7"></span>
+            </div>
+            <div class="bubble">
+                ${data.text}
+                <span class="time">${timeStr}</span>
+            </div>
+        `;
+
+        chatBox.appendChild(msgWrapper);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Watch user status live
+        onValue(ref(db, `/status/${data.userId}`), (snap) => {
+            const status = snap.val();
+            const dot = msgWrapper.querySelector(`.dot-${data.userId}`);
+            const seenText = msgWrapper.querySelector(`.last-seen-${data.userId}`);
+            
+            if (status) {
+                if (status.state === 'online') {
+                    dot.className = `status-dot dot-online`;
+                    seenText.innerText = "online";
+                } else {
+                    dot.className = `status-dot dot-offline`;
+                    seenText.innerText = getTimeAgo(status.lastChanged);
+                }
+            }
+        });
+    }
+
+    // Refresh "Last Seen" texts every 30 seconds
+    setInterval(() => {
+        // Logic to refresh all offline status texts
+    }, 30000);
+</script>
 </body>
 </html>
